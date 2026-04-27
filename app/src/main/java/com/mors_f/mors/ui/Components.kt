@@ -3,8 +3,10 @@ package com.mors_f.mors.ui
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -172,6 +174,8 @@ fun PostCard(postData: Map<String, Any>, postId: String, canDelete: Boolean = fa
     var userProfilePic by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showCommentsDialog by remember { mutableStateOf(false) }
+    var showVotersDialog by remember { mutableStateOf(false) }
+    var voterType by remember { mutableStateOf("upvote") }
 
     LaunchedEffect(postUserId) {
         db.collection("users").document(postUserId).get()
@@ -213,6 +217,14 @@ fun PostCard(postData: Map<String, Any>, postId: String, canDelete: Boolean = fa
             postId = postId,
             onDismiss = { showCommentsDialog = false },
             postUserId = postUserId
+        )
+    }
+    
+    if (showVotersDialog) {
+        VotersDialog(
+            userIds = if (voterType == "upvote") upvotedBy else downvotedBy,
+            title = if (voterType == "upvote") "Liked By" else "Disliked By",
+            onDismiss = { showVotersDialog = false }
         )
     }
 
@@ -305,19 +317,19 @@ fun PostCard(postData: Map<String, Any>, postId: String, canDelete: Boolean = fa
                     icon = if (isUpvoted) Icons.Default.ThumbUp else Icons.Default.ThumbUpOffAlt, 
                     count = upvotedBy.size.toString(),
                     tint = if (isUpvoted) PrimaryBlue else TextGrey,
+                    onLongClick = {
+                        voterType = "upvote"
+                        showVotersDialog = true
+                    },
                     onClick = {
                         if (currentUserId != null) {
                             val postRef = db.collection("posts").document(postId)
                             if (isUpvoted) {
                                 postRef.update("upvotedBy", FieldValue.arrayRemove(currentUserId))
                                 deleteNotification(postId, currentUserId, postUserId, "like")
-                            } else {
+                            } else if (!isDownvoted) {
                                 postRef.update("upvotedBy", FieldValue.arrayUnion(currentUserId))
                                 createNotification(postId, currentUserId, postUserId, "like")
-                                if (isDownvoted) {
-                                    postRef.update("downvotedBy", FieldValue.arrayRemove(currentUserId))
-                                    deleteNotification(postId, currentUserId, postUserId, "dislike")
-                                }
                             }
                         }
                     }
@@ -327,19 +339,19 @@ fun PostCard(postData: Map<String, Any>, postId: String, canDelete: Boolean = fa
                     icon = if (isDownvoted) Icons.Default.ThumbDown else Icons.Default.ThumbDownOffAlt, 
                     count = downvotedBy.size.toString(),
                     tint = if (isDownvoted) Color.Red else TextGrey,
+                    onLongClick = {
+                        voterType = "downvote"
+                        showVotersDialog = true
+                    },
                     onClick = {
                         if (currentUserId != null) {
                             val postRef = db.collection("posts").document(postId)
                             if (isDownvoted) {
                                 postRef.update("downvotedBy", FieldValue.arrayRemove(currentUserId))
                                 deleteNotification(postId, currentUserId, postUserId, "dislike")
-                            } else {
+                            } else if (!isUpvoted) {
                                 postRef.update("downvotedBy", FieldValue.arrayUnion(currentUserId))
                                 createNotification(postId, currentUserId, postUserId, "dislike")
-                                if (isUpvoted) {
-                                    postRef.update("upvotedBy", FieldValue.arrayRemove(currentUserId))
-                                    deleteNotification(postId, currentUserId, postUserId, "like")
-                                }
                             }
                         }
                     }
@@ -355,16 +367,73 @@ fun PostCard(postData: Map<String, Any>, postId: String, canDelete: Boolean = fa
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun InteractionButton(icon: ImageVector, count: String, tint: Color = PrimaryBlue, onClick: () -> Unit = {}) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable { onClick() }
+fun InteractionButton(
+    icon: ImageVector, 
+    count: String, 
+    tint: Color = PrimaryBlue, 
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(4.dp))
-        Text(count, color = TextGrey, fontSize = 12.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(count, color = TextGrey, fontSize = 12.sp)
+        }
     }
+}
+
+@Composable
+fun VotersDialog(userIds: List<String>, title: String, onDismiss: () -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    var voters by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(userIds) {
+        if (userIds.isEmpty()) {
+            isLoading = false
+        } else {
+            val fetchedVoters = mutableListOf<String>()
+            userIds.forEach { uid ->
+                db.collection("users").document(uid).get()
+                    .addOnSuccessListener { doc ->
+                        doc.getString("username")?.let { fetchedVoters.add(it) }
+                        if (fetchedVoters.size == userIds.size) {
+                            voters = fetchedVoters
+                            isLoading = false
+                        }
+                    }
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else if (voters.isEmpty()) {
+                Text("No users yet")
+            } else {
+                LazyColumn {
+                    items(voters) { name ->
+                        Text(name, modifier = Modifier.padding(vertical = 4.dp), fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }
 
 @Composable

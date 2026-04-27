@@ -43,7 +43,8 @@ fun MorsApp() {
         }
     }
     
-    val startDestination = if (currentUser != null) Screen.Home.route else Screen.Login.route
+    // Set Feed as the default screen when logged in
+    val startDestination = if (currentUser != null) Screen.Feed.route else Screen.Login.route
 
     NavHost(
         navController = navController,
