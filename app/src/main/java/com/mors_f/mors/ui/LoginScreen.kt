@@ -36,7 +36,7 @@ const val WEB_CLIENT_ID = "44177632933-sof0cq14cu0tfomlj5fa07lhrmjha6fv.apps.goo
 
 @Composable
 fun LoginScreen(onRegisterClick: () -> Unit, onNavigate: (String) -> Unit) {
-    var email by remember { mutableStateOf("") }
+    var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     
@@ -68,7 +68,8 @@ fun LoginScreen(onRegisterClick: () -> Unit, onNavigate: (String) -> Unit) {
                                                 "firstName" to (user.displayName?.split(" ")?.getOrNull(0) ?: ""),
                                                 "lastName" to (user.displayName?.split(" ")?.getOrNull(1) ?: ""),
                                                 "username" to (user.email?.split("@")?.get(0) ?: "user"),
-                                                "email" to (user.email ?: "")
+                                                "email" to (user.email ?: ""),
+                                                "phoneNumber" to ""
                                             )
                                             db.collection("users").document(user.uid).set(userMap)
                                                 .addOnSuccessListener {
@@ -127,11 +128,11 @@ fun LoginScreen(onRegisterClick: () -> Unit, onNavigate: (String) -> Unit) {
             )
 
             MorsTextField(
-                label = "Email",
-                placeholder = "Enter your email",
-                icon = Icons.Default.Email,
-                value = email,
-                onValueChange = { email = it }
+                label = "Email or Phone Number",
+                placeholder = "Enter email or phone",
+                icon = Icons.Default.Person,
+                value = emailOrPhone,
+                onValueChange = { emailOrPhone = it }
             )
             MorsTextField(
                 label = "Password",
@@ -144,40 +145,31 @@ fun LoginScreen(onRegisterClick: () -> Unit, onNavigate: (String) -> Unit) {
 
             Button(
                 onClick = {
-                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                    if (emailOrPhone.isNotEmpty() && password.isNotEmpty()) {
                         isLoading = true
-                        auth.signInWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    val userId = auth.currentUser?.uid
-                                    if (userId != null) {
-                                        // CHECK IF REGISTERED IN FIRESTORE
-                                        db.collection("users").document(userId).get()
-                                            .addOnSuccessListener { document ->
-                                                isLoading = false
-                                                if (document.exists()) {
-                                                    onNavigate(Screen.Home.route)
-                                                } else {
-                                                    // Not registered in app (no Firestore record)
-                                                    auth.signOut()
-                                                    Toast.makeText(context, "Account not fully registered. Please use the Register screen.", Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                            .addOnFailureListener {
-                                                isLoading = false
-                                                auth.signOut()
-                                                Toast.makeText(context, "Verification failed. Try again.", Toast.LENGTH_SHORT).show()
-                                            }
+                        
+                        if (emailOrPhone.contains("@")) {
+                            // Login with Email
+                            performLogin(auth, db, emailOrPhone, password, onNavigate, context) { isLoading = false }
+                        } else {
+                            // Login with Phone - Search for email associated with phone
+                            db.collection("users")
+                                .whereEqualTo("phoneNumber", emailOrPhone)
+                                .get()
+                                .addOnSuccessListener { documents ->
+                                    if (!documents.isEmpty) {
+                                        val email = documents.documents[0].getString("email") ?: ""
+                                        performLogin(auth, db, email, password, onNavigate, context) { isLoading = false }
+                                    } else {
+                                        isLoading = false
+                                        Toast.makeText(context, "Phone number not found", Toast.LENGTH_SHORT).show()
                                     }
-                                } else {
-                                    isLoading = false
-                                    Toast.makeText(
-                                        context,
-                                        "Login failed: ${task.exception?.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
-                            }
+                                .addOnFailureListener {
+                                    isLoading = false
+                                    Toast.makeText(context, "Verification failed", Toast.LENGTH_SHORT).show()
+                                }
+                        }
                     } else {
                         Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                     }
@@ -232,6 +224,43 @@ fun LoginScreen(onRegisterClick: () -> Unit, onNavigate: (String) -> Unit) {
             Text("© 2026 MORS. All rights reserved.", color = TextGrey, fontSize = 10.sp)
         }
     }
+}
+
+private fun performLogin(
+    auth: FirebaseAuth,
+    db: FirebaseFirestore,
+    email: String,
+    password: String,
+    onNavigate: (String) -> Unit,
+    context: android.content.Context,
+    onFinished: () -> Unit
+) {
+    auth.signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val userId = auth.currentUser?.uid
+                if (userId != null) {
+                    db.collection("users").document(userId).get()
+                        .addOnSuccessListener { document ->
+                            onFinished()
+                            if (document.exists()) {
+                                onNavigate(Screen.Home.route)
+                            } else {
+                                auth.signOut()
+                                Toast.makeText(context, "Account not fully registered.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        .addOnFailureListener {
+                            onFinished()
+                            auth.signOut()
+                            Toast.makeText(context, "Verification failed.", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            } else {
+                onFinished()
+                Toast.makeText(context, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
 }
 
 @Composable

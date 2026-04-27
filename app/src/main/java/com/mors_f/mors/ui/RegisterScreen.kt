@@ -30,6 +30,7 @@ fun RegisterScreen(onLoginClick: () -> Unit, onNavigate: (String) -> Unit) {
     var lastName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -75,12 +76,13 @@ fun RegisterScreen(onLoginClick: () -> Unit, onNavigate: (String) -> Unit) {
             MorsTextField(label = "Last name", placeholder = "Enter your last name", icon = Icons.Default.Person, value = lastName, onValueChange = { lastName = it })
             MorsTextField(label = "User name", placeholder = "Choose a username", icon = Icons.Default.Person, value = username, onValueChange = { username = it })
             MorsTextField(label = "Email", placeholder = "Enter your email address", icon = Icons.Default.Email, value = email, onValueChange = { email = it })
+            MorsTextField(label = "Phone Number", placeholder = "Enter your phone number", icon = Icons.Default.Phone, value = phoneNumber, onValueChange = { phoneNumber = it })
             MorsTextField(label = "Password", placeholder = "Create a password", icon = Icons.Default.Lock, isPassword = true, value = password, onValueChange = { password = it })
             MorsTextField(label = "Confirm password", placeholder = "Confirm your password", icon = Icons.Default.Lock, isPassword = true, value = confirmPassword, onValueChange = { confirmPassword = it })
 
             Button(
                 onClick = {
-                    if (email.isNotEmpty() && password.isNotEmpty() && firstName.isNotEmpty() && lastName.isNotEmpty() && username.isNotEmpty()) {
+                    if (email.isNotEmpty() && password.isNotEmpty() && firstName.isNotEmpty() && lastName.isNotEmpty() && username.isNotEmpty() && phoneNumber.isNotEmpty()) {
                         if (password == confirmPassword) {
                             isLoading = true
                             auth.createUserWithEmailAndPassword(email, password)
@@ -91,7 +93,8 @@ fun RegisterScreen(onLoginClick: () -> Unit, onNavigate: (String) -> Unit) {
                                             "firstName" to firstName,
                                             "lastName" to lastName,
                                             "username" to username,
-                                            "email" to email
+                                            "email" to email,
+                                            "phoneNumber" to phoneNumber
                                         )
                                         if (userId != null) {
                                             db.collection("users").document(userId)
