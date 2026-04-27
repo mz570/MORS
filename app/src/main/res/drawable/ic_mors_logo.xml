@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Shield Background -->
+    <path
+        android:fillColor="#0061FF"
+        android:pathData="M60,10 L20,30 V90 L60,110 L100,90 V30 L60,10 Z" />
+    <!-- White 'M' Letter -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,45 H50 L60,65 L70,45 H80 V85 H70 V55 L60,75 H55 L45,55 V85 H35 V45 H40 Z" />
+</vector>

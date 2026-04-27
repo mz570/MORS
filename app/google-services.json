@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "44177632933",
+    "project_id": "mors-b93e1",
+    "storage_bucket": "mors-b93e1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44177632933:android:fcc1219c11075c2c8ce74c",
+        "android_client_info": {
+          "package_name": "com.mors_f.mors"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "44177632933-6l8f7hq93bao2butvgnslji148aap1ln.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mors_f.mors",
+            "certificate_hash": "05a23f52059fff777a7a6dde9e25f780404a858a"
+          }
+        },
+        {
+          "client_id": "44177632933-sof0cq14cu0tfomlj5fa07lhrmjha6fv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvtjKeY6TgaND_pxCwAjE-s5GQZ5eosQE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "44177632933-sof0cq14cu0tfomlj5fa07lhrmjha6fv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
