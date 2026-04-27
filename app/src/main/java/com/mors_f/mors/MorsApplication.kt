@@ -6,8 +6,8 @@ import com.cloudinary.android.MediaManager
 class MorsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        
-        // Initialize Cloudinary
+
+
         val config = mapOf(
             "cloud_name" to "dpdg31jra",
             "api_key" to "391111436651981",
