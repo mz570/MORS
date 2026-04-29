@@ -245,6 +245,7 @@ The MORS project was conceived to create a **next-generation social media platfo
 - ❌ More enhanced Authincation
 - ❌ Admin panel(To Authinticate post,and handle user)
 - ❌ User tagging and mentioning system.
+- ❌ Catagory system
 ### 4.5 Expected Outcomes
 
 #### Successful Project Deliverables:
